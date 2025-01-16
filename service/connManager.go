@@ -1,0 +1,66 @@
+package service
+
+import (
+	"context"
+	"dev/chatspace/models"
+	"log"
+	"sync"
+
+	"github.com/redis/go-redis/v9"
+)
+
+type Manager struct {
+	clients    map[string]*Client
+	register   chan *Client
+	unregister chan *Client
+	msgSent    chan *models.Event
+	redis_client *redis.Client
+	lock 	 sync.RWMutex
+}
+
+func NewManager(redis_client *redis.Client) *Manager {
+	return &Manager{
+		clients:    make(map[string]*Client),
+		register:   make(chan *Client),
+		unregister: make(chan *Client),
+		msgSent:    make(chan *models.Event),
+		redis_client: redis_client,
+	}
+}
+
+func (m *Manager) Start() {
+	for {
+		select {
+		case client := <-m.register:
+			// though select is thread safe, placing a lock if the hub
+			m.clients[client.userId] = client	
+			// add additional logic to check if messages are present in queue for them to be delivered
+		case client := <-m.unregister:		
+			delete(m.clients, client.userId)
+		case event := <-m.msgSent:
+			log.Println("message received from client on manager : ", string(event.Data))
+			
+			log.Println("event data received from client on manager : ", string(event.Data))
+			client, present := m.clients[event.UserId]
+			if present {
+				client.buff <- []byte(event.Data)
+
+				log.Println("message sent to client",event.Data)
+			} else {
+				
+				err := m.redis_client.Publish(context.Background(), event.UserId, event.Data).Err()
+				// will be added to redis queue for users in another server
+
+				if err != nil {
+					log.Println("error occurred while publishing message to redis queue")
+				}
+			}
+
+		}
+	}
+}
+
+
+// hub only manages registration and unregistering and passing of clients to other clients inorder for them to communicates
+
+// flows needed to handle if the messages are present in the redis queue it has to conumed and this can be directly done by the client itself, the 
