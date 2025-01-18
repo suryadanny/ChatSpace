@@ -12,6 +12,7 @@ import (
 
 var Db *sql.DB
 
+
 func SetupSqlDbconnection(properties map[string]string) {
 	cfg := mysql.Config{
 		User: properties["username"],

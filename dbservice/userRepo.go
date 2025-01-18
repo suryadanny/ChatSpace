@@ -9,15 +9,61 @@ import (
 	"strconv"
 
 	"github.com/gorilla/websocket"
+	"github.com/scylladb/gocqlx/v2"
+	"github.com/scylladb/gocqlx/v2/qb"
 )
 
-type UserRepo struct {
+type UserRepository struct {
+	session *gocqlx.Session
+	//lock *sync.RWMutex
 }
 
-func (u *UserRepo) CreateUser() {
+
+func NewUserRepository(session *gocqlx.Session) *UserRepository {
+	return &UserRepository{session}
+}
+
+func (u *UserRepository) CreateUser(user *models.User) error {
 	
+	err := u.session.Query(models.UserTable.Insert()).BindStruct(user).ExecRelease()
+	
+	if err != nil {
+		log.Println("error while inserting user : ", err)
+		return err
+	}
+
+	return nil	
 }
 
+
+func (u *UserRepository) GetAllUsers() ([]*models.User, error) {
+	usersList := []*models.User{}
+	query := u.session.Query("select * from user", nil)
+	if err := query.Select(&usersList); err != nil {
+		log.Println("error while fetching users : ", err)
+		return nil, err
+	}
+	return usersList, nil
+}
+
+
+func (u *UserRepository) GetUser(userId string) (*models.User, error) {
+	user := &models.User{}
+	err := u.session.Query(models.UserTable.Select()).BindMap(qb.M{"user_id": userId}).GetRelease(user)
+	if err != nil {
+		log.Printf("error while fetching user %s : %v ",userId, err)
+		return nil, err
+	}
+	return user, nil 
+}
+
+func (u *UserRepository) UpdateUser(user *models.User) error {
+	return nil
+}
+
+
+
+// below Database methodds are to interact with a mysql database
 
 var connectioUpgrader = websocket.Upgrader{
    ReadBufferSize: 1024,

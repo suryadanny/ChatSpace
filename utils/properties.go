@@ -2,7 +2,6 @@ package utils
 
 import (
 	"bufio"
-	"fmt"
 	"log"
 	"os"
 	"strings"
@@ -14,7 +13,7 @@ func GetAppPropeties() (map[string]string, error) {
 	AppProperties := make(map[string]string)
 	
 	file, err := os.Open("app.properties")
-	fmt.Println(os.UserConfigDir())
+	
 	if err != nil{
 		log.Fatal("error while reading file")
 		log.Fatal(err)

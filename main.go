@@ -7,21 +7,31 @@ import (
 	"fmt"
 	"log"
 	"net/http"
+	"os"
 
 	"github.com/go-chi/chi"
 	"github.com/go-chi/chi/middleware"
-	"github.com/redis/go-redis/v9"
-
-	// "github.com/go-sql-driver/mysql"
-	//
 	_ "github.com/go-sql-driver/mysql"
+	"github.com/gocql/gocql"
+	"github.com/redis/go-redis/v9"
+	"github.com/scylladb/gocqlx/v2"
 )
 
 
 
 
 func main(){
+	port := "8000"
 	
+	if len(os.Args) < 2 {
+		log.Println("Port not provided, using default port 8000")
+		
+	}else{
+		port = os.Args[1]
+	}
+	
+	log.Println("Starting the server on port : ", port)
+
 	AppProperties, err := utils.GetAppPropeties()
 	if err != nil {
 		log.Fatal("error while reading properties")
@@ -33,6 +43,31 @@ func main(){
 	}
 	fmt.Println(AppProperties)
 
+	cluster := gocql.NewCluster(AppProperties["cqsql.hostname"])
+	cluster.Keyspace = "store"
+	cluster.Port = 9042
+	cluster.Consistency = gocql.Quorum
+	session, err := cluster.CreateSession()
+	
+	if err != nil {
+		log.Fatal("error while creating session" ,err)
+		return
+	}
+	// close the session when exiting the serivice
+	defer session.Close()
+
+	//creating user respository
+	cqlx_session, err := gocqlx.WrapSession(session ,err)
+	
+	
+	if err != nil {
+		log.Fatal("error while wrapping cql session", err)
+		return
+	}
+
+	userRepo := dbservice.NewUserRepository(&cqlx_session)
+	//instantiating redis client to be used for 
+	//communication between clients on multiple servers
 	redis_client := redis.NewClient(&redis.Options{
 		Addr: "localhost:6379",
 		Password: "",	
@@ -40,7 +75,7 @@ func main(){
 	})
 	// a service hub in the application for moving messages betwee clients
 	manager := service.NewManager(redis_client)
-    userService := service.NewUserService() 
+    userService := service.NewUserService(userRepo) 
 
 	go manager.Start()
 
@@ -66,10 +101,10 @@ func main(){
 	})
 	
 
-	router.Get("/websocket", http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+	router.Get("/chat", http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		service.SocketHandler(manager, redis_client, w, r)
 	}))
 
 
-	http.ListenAndServe(":8000",router)
+	http.ListenAndServe(":"+port,router)
 }

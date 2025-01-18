@@ -107,11 +107,10 @@ func (c *Client) pingUser() {
 			err := c.conn.WriteControl(websocket.PingMessage, []byte{}, time.Now().Add(10*time.Second))
 			if err != nil {
 			   log.Println("error while pinging user", err)
-			   
+			   return
 			}
 	}
 }
-
 
 
 func SocketHandler(manager *Manager, redis_client *redis.Client, w http.ResponseWriter, r *http.Request) {

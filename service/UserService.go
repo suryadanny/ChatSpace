@@ -8,20 +8,23 @@ import (
 	"log"
 	"net/http"
 
+	"github.com/google/uuid"
+
 	"github.com/go-chi/chi"
 )
 
 
 type UserService struct {
+	userRepo *dbservice.UserRepository
 }
 
 
-func NewUserService() *UserService{
-	return &UserService{}
+func NewUserService(userRepo *dbservice.UserRepository) *UserService{
+	return &UserService{userRepo:userRepo}
 }
 
 func (u *UserService) GetUsers(w http.ResponseWriter, r *http.Request) {
-	users, err := dbservice.GetAllUsers()
+	users, err := u.userRepo.GetAllUsers()
 
 	if err != nil {
 		log.Fatal("error occurred while fetching users")
@@ -37,10 +40,10 @@ func (u *UserService) GetUsers(w http.ResponseWriter, r *http.Request) {
 func (u *UserService) GetUser(w http.ResponseWriter, r *http.Request) {
 	id  := chi.URLParam(r, "id")
 
-	user, err := dbservice.GetUser(id)
+	user, err := u.userRepo.GetUser(id)
 
 	if err != nil {
-		log.Fatal("error occurred while fetching users")
+		log.Println("error occurred while fetching user")
 	}
 
 	serUser , _ := json.Marshal(user)
@@ -67,7 +70,9 @@ func (u *UserService)CreateUser(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	err = dbservice.InsertNewUser(user)
+	user.UserId = uuid.New().String()
+
+	err = u.userRepo.CreateUser(user)
 
 	if err != nil {	
 		log.Println("error while creating user")
