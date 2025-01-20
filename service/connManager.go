@@ -4,7 +4,6 @@ import (
 	"context"
 	"dev/chatspace/models"
 	"log"
-	"sync"
 
 	"github.com/redis/go-redis/v9"
 )
@@ -15,7 +14,7 @@ type Manager struct {
 	unregister chan *Client
 	msgSent    chan *models.Event
 	redis_client *redis.Client
-	lock 	 sync.RWMutex
+	// /lock 	 sync.RWMutex
 }
 
 func NewManager(redis_client *redis.Client) *Manager {
@@ -35,7 +34,8 @@ func (m *Manager) Start() {
 			// though select is thread safe, placing a lock if the hub
 			m.clients[client.userId] = client	
 			// add additional logic to check if messages are present in queue for them to be delivered
-		case client := <-m.unregister:		
+		case client := <-m.unregister:
+			log.Printf("client %s unregistered", client.userId)		
 			delete(m.clients, client.userId)
 		case event := <-m.msgSent:
 			log.Println("message received from client on manager : ", string(event.Data))
@@ -48,11 +48,17 @@ func (m *Manager) Start() {
 				log.Println("message sent to client",event.Data)
 			} else {
 				
-				err := m.redis_client.Publish(context.Background(), event.UserId, event.Data).Err()
+				// /err := m.redis_client.Publish(context.Background(), event.UserId, event.Data).Err()
+				entry_id, err:= m.redis_client.XAdd(context.Background(), &redis.XAddArgs{
+					Stream: event.UserId,
+					Values: map[string]interface{}{"payload": event.Data},
+				}).Result()
 				// will be added to redis queue for users in another server
 
 				if err != nil {
 					log.Println("error occurred while publishing message to redis queue")
+				}else{
+					log.Println("message added to redis queue with entry id : ", entry_id)
 				}
 			}
 

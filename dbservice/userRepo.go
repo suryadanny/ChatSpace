@@ -47,6 +47,37 @@ func (u *UserRepository) GetAllUsers() ([]*models.User, error) {
 }
 
 
+func (u *UserRepository) DeleteUser(userId string) error {
+	err := u.session.Query(models.UserTable.Delete()).BindMap(qb.M{"user_id": userId}).ExecRelease()
+	if err != nil {
+		log.Println("error while deleting user : ", err)
+		return err
+	}
+	return nil
+}
+
+func (u *UserRepository) UpdateUser(user map[string]string, user_id string) error {
+	models.UserTable.SelectQuery(*u.session)
+	// models.UserTable.UpdateQuery(*u.session).
+	qb_map := qb.M{}
+	update := qb.Update("store.user")
+	for key, value := range user{
+		update.Set(key)
+		qb_map[key] = value
+	}
+
+	qb_map["user_id"] = user_id
+	
+	stmt, names := update.Where(qb.Eq("user_id")).ToCql()
+	
+	if err := u.session.Query(stmt, names).BindMap(qb_map).ExecRelease(); err != nil {
+		log.Println("error while updating user : ", err)
+		return err
+	}
+
+	return nil
+}
+
 func (u *UserRepository) GetUser(userId string) (*models.User, error) {
 	user := &models.User{}
 	err := u.session.Query(models.UserTable.Select()).BindMap(qb.M{"user_id": userId}).GetRelease(user)
@@ -57,9 +88,7 @@ func (u *UserRepository) GetUser(userId string) (*models.User, error) {
 	return user, nil 
 }
 
-func (u *UserRepository) UpdateUser(user *models.User) error {
-	return nil
-}
+
 
 
 

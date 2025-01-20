@@ -90,20 +90,23 @@ func main(){
 	router.Use(middleware.Recoverer)
 	
 
-	router.Route("/", func(r chi.Router) {
-		r.Get("/user", http.HandlerFunc(userService.GetUsers))
-		r.Get("/user/{id}", http.HandlerFunc(userService.GetUser)) 
-		r.Post("/user", http.HandlerFunc(userService.CreateUser))
+	router.Route("/user", func(r chi.Router) {
 
-		// r.Route("/chat", func(r chi.Router) {
-		// 	r.Ge
-		// })
+
+		r.Get("/", http.HandlerFunc(userService.GetUsers))
+		r.Get("/{id}", http.HandlerFunc(userService.GetUser)) 
+		r.Post("/", http.HandlerFunc(userService.CreateUser))
+		r.Get("/{id}/chat", http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			service.SocketHandler(manager, redis_client, w, r)
+		}))
+		r.Post("/{id}/delete", http.HandlerFunc(userService.DeleteUser))
+		r.Put("/{id}/update", http.HandlerFunc(userService.UpdateUser))
 	})
 	
 
-	router.Get("/chat", http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		service.SocketHandler(manager, redis_client, w, r)
-	}))
+	// router.Get("/chat", http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+	// 	service.SocketHandler(manager, redis_client, w, r)
+	// }))
 
 
 	http.ListenAndServe(":"+port,router)
