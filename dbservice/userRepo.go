@@ -89,6 +89,22 @@ func (u *UserRepository) GetUser(userId string) (*models.User, error) {
 }
 
 
+func (u *UserRepository) GetUserByField(fieldName string, username string) (*models.User, error) {
+	user := &models.User{}
+
+	select_stmt := qb.Select("store.user")
+	select_stmt.Where(qb.Eq(fieldName))
+	stmt, names := select_stmt.ToCql()
+	log.Println(stmt)
+
+	err := u.session.Query(stmt,names).BindMap(qb.M{fieldName: username}).GetRelease(user)
+	if err != nil {
+		log.Printf("error while fetching login user %s : %v ",username, err)
+		return nil, err
+	}
+	return user, nil 
+}
+
 
 
 

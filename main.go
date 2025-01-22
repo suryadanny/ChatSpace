@@ -1,6 +1,7 @@
 package main
 
 import (
+	"dev/chatspace/authentication"
 	"dev/chatspace/dbservice"
 	"dev/chatspace/service"
 	"dev/chatspace/utils"
@@ -88,19 +89,28 @@ func main(){
 	router := chi.NewRouter()
 	router.Use(middleware.Logger)
 	router.Use(middleware.Recoverer)
-	
+	// public routes
+	router.Group(func( r chi.Router){
+		r.Post("/signup", utils.ValidateUserRequestMiddleWare(http.HandlerFunc(userService.CreateUser)))
+		r.Post("/login", utils.ValidateLoginRequestMiddleWare(http.HandlerFunc(userService.Login)))
+	})
 
-	router.Route("/user", func(r chi.Router) {
+
+	//private routes with jwt auth tokens
+	router.Group(func(r chi.Router){
+		r.Use(authentication.TokenMiddleware)
+		r.Route("/user", func(r chi.Router) {
 
 
-		r.Get("/", http.HandlerFunc(userService.GetUsers))
-		r.Get("/{id}", http.HandlerFunc(userService.GetUser)) 
-		r.Post("/", http.HandlerFunc(userService.CreateUser))
-		r.Get("/{id}/chat", http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-			service.SocketHandler(manager, redis_client, w, r)
-		}))
-		r.Post("/{id}/delete", http.HandlerFunc(userService.DeleteUser))
-		r.Put("/{id}/update", http.HandlerFunc(userService.UpdateUser))
+			r.Get("/", http.HandlerFunc(userService.GetUsers))
+			r.Get("/{id}", http.HandlerFunc(userService.GetUser)) 
+			r.Post("/", http.HandlerFunc(userService.CreateUser))
+			r.Get("/{id}/chat", http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+				service.SocketHandler(manager, redis_client, w, r)
+			}))
+			r.Post("/{id}/delete", http.HandlerFunc(userService.DeleteUser))
+			r.Put("/{id}/update", http.HandlerFunc(userService.UpdateUser))
+		})
 	})
 	
 

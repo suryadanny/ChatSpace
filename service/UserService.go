@@ -1,6 +1,7 @@
 package service
 
 import (
+	"dev/chatspace/authentication"
 	"dev/chatspace/dbservice"
 	"dev/chatspace/models"
 	"encoding/json"
@@ -8,9 +9,11 @@ import (
 	"log"
 	"net/http"
 
-	"github.com/google/uuid"
+	"time"
 
 	"github.com/go-chi/chi"
+	"github.com/golang-jwt/jwt/v5"
+	"github.com/google/uuid"
 )
 
 
@@ -51,6 +54,9 @@ func (u *UserService) GetUser(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/json")
 	w.Write([]byte(serUser))
 }
+
+
+
 
 func (u *UserService) DeleteUser(w http.ResponseWriter, r *http.Request) {
 	id  := chi.URLParam(r, "id")
@@ -124,5 +130,62 @@ func (u *UserService)CreateUser(w http.ResponseWriter, r *http.Request) {
 
 	w.WriteHeader(http.StatusCreated)
 	
+
+}
+
+func (u *UserService) Login(w http.ResponseWriter, r *http.Request) {
+
+	
+	request := make(map[string]string)
+
+	request_body , err := io.ReadAll(r.Body)
+	if err != nil {
+		log.Println("error in retrieving request body")
+		w.WriteHeader(http.StatusBadRequest)
+	}
+	
+	un_err := json.Unmarshal(request_body, &request)
+
+	if un_err != nil {
+		log.Println("error while unmarshalling request body ", un_err)
+		w.WriteHeader(http.StatusBadRequest)
+	}
+
+	username := request["user_name"]
+	password := request["password"]
+	log.Println("username : ", username)
+
+	user, err := u.userRepo.GetUserByField("user_name", username)
+
+	if err != nil {
+		log.Println("error while fetching user")
+		w.WriteHeader(http.StatusInternalServerError)
+		return
+	}
+
+	if user.Password != password {
+		log.Println("password is incorrect")
+		w.WriteHeader(http.StatusUnauthorized)
+		return
+	}
+
+	claims := jwt.MapClaims{
+		"username": user.UserName,
+		"email": user.Email,
+		"iat": time.Now().Unix(),
+		"exp": time.Now().Add(time.Hour * 24).Unix(),
+	}
+
+	token_string, err := authentication.BuildJwtToken(claims)
+
+	if err != nil {
+		log.Println("error while generating token")
+		w.WriteHeader(http.StatusInternalServerError)
+		return
+	}
+
+	w.Header().Set("Authorization", "Bearer " + token_string)
+	w.WriteHeader(http.StatusOK)
+	w.Write([]byte("login successful"))
 
 }
