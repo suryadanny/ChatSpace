@@ -23,12 +23,10 @@ func SetupSqlDbconnection(properties map[string]string) {
 		AllowNativePasswords: true,
 	}
 	var err error
-	fmt.Println(cfg.FormatDSN())
 	Db, err = sql.Open("mysql", cfg.FormatDSN())
 	if err != nil && Db.Ping() != nil {
 		log.Fatal(err)
 	} else{
-		fmt.Println("Successfully connected!")
 		Db.SetConnMaxIdleTime(time.Minute * 5)
 		Db.SetMaxOpenConns(20)
 		Db.SetMaxIdleConns(20)
@@ -36,8 +34,6 @@ func SetupSqlDbconnection(properties map[string]string) {
 
 
 	
-
-	fmt.Println("Successfully connected!")
 }
 
 func GetSqlDb() *sql.DB {

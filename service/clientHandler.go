@@ -2,6 +2,7 @@ package service
 
 import (
 	"context"
+	"dev/chatspace/dbservice"
 	"dev/chatspace/models"
 	"encoding/json"
 	"log"
@@ -21,6 +22,7 @@ type Client struct {
 	closed chan bool
 	manager *Manager
 	redis_client *redis.Client
+	repoStore *dbservice.RepoStore
 }
 
 
@@ -30,7 +32,7 @@ var upgrader = websocket.Upgrader{
 }
 
 
-func NewClient(conn *websocket.Conn,redis_client *redis.Client, userId string, manager *Manager) *Client {
+func NewClient(conn *websocket.Conn,redis_client *redis.Client, userId string, manager *Manager, repoStore *dbservice.RepoStore) *Client {
 	return &Client{
 		conn: conn,
 		userId : userId,
@@ -38,6 +40,7 @@ func NewClient(conn *websocket.Conn,redis_client *redis.Client, userId string, m
 		closed: make(chan bool),
 		manager: manager,
 		redis_client: redis_client,
+		repoStore: repoStore,
 	}
 }
 
@@ -47,13 +50,19 @@ func (c *Client) register() {
 	c.manager.register <- c
 }
 
+func (c *Client) updateUserLastActiveTime(){
+	c.repoStore.GetUserRepo().UpdateUser( map[string]interface{}{"last_active" : time.Now().Unix()} , c.userId)
+}
+
 func (c *Client) receiveMessage(){
 
 	defer close(c.closed)
 	c.conn.SetReadLimit(1024)
-	c.conn.SetReadDeadline(time.Now().Add(60 * time.Second))
+	c.conn.SetReadDeadline(time.Now().Add(200 * time.Second))
 	c.conn.SetPongHandler(func(payload string) error {
-		c.conn.SetReadDeadline(time.Now().Add(60 * time.Second))
+		c.conn.SetReadDeadline(time.Now().Add(200 * time.Second))
+		c.updateUserLastActiveTime()
+		//c.repoStore.GetUserRepo().UpdateUser( map[string]interface{}{"last_active" : time.Now().Unix()} , c.userId)
 		//log.Println("pong received from user")
 		return nil
 	})
@@ -75,6 +84,7 @@ func (c *Client) receiveMessage(){
 			event := &models.Event{}
 			log.Println("cleaned message : ", cleanedMsg)
 			err := json.Unmarshal([]byte(cleanedMsg), event)
+			event.SenderId = c.userId
 			if err != nil {
 				log.Println("error occurred while unmarshalling event data : ", err)
 				
@@ -122,6 +132,11 @@ func (c *Client) sendMessage() {
 func (c *Client) readFromStream(close chan bool) {
 	ctx := context.Background()
 	id := "0"
+	
+	if c.repoStore.GetUserDeviceRepo().LastMsgIdRead(c.userId).RedisId != "" {
+		id = c.repoStore.GetUserDeviceRepo().LastMsgIdRead(c.userId).RedisId
+	}
+
 	for {
 		select {
 			
@@ -134,7 +149,7 @@ func (c *Client) readFromStream(close chan bool) {
 				msg, err  := c.redis_client.XRead(ctx, &redis.XReadArgs{
 					Streams: []string{c.userId, id},
 					Count: 2,
-					Block: 300 * time.Millisecond ,
+					Block: 1000 * time.Millisecond ,
 				}).Result()
 
 
@@ -150,6 +165,11 @@ func (c *Client) readFromStream(close chan bool) {
 						c.buff <- []byte(data)
 					}
 				}
+
+				err = c.repoStore.GetUserDeviceRepo().UpdateUserDevice(map[string]interface{}{"redis_id" : id}, c.userId)
+				if err != nil {
+					log.Println("error while updating redis id : ", err)
+				}
 		}
 
 	}
@@ -158,7 +178,7 @@ func (c *Client) readFromStream(close chan bool) {
 
 func (c *Client) pingUser() {
 	// for client to ping the user to check if the user is still active
-	pinger := time.NewTicker(30 * time.Second)
+	pinger := time.NewTicker(60 * time.Second)
 	for range pinger.C {
 			err := c.conn.WriteControl(websocket.PingMessage, []byte{}, time.Now().Add(10*time.Second))
 			if err != nil {
@@ -172,7 +192,7 @@ func (c *Client) pingUser() {
 }
 
 
-func SocketHandler(manager *Manager, redis_client *redis.Client, w http.ResponseWriter, r *http.Request) {
+func SocketHandler(manager *Manager, redis_client *redis.Client, w http.ResponseWriter, r *http.Request , repoStore *dbservice.RepoStore) {
 	socket, err := upgrader.Upgrade(w, r, nil)
 	if err != nil {
 		log.Fatal(err)
@@ -180,12 +200,12 @@ func SocketHandler(manager *Manager, redis_client *redis.Client, w http.Response
 	}
 	userId := chi.URLParam(r, "id")
 	//userId := r.URL.Query().Get("userId")
-	createClient(manager, redis_client, socket, userId)
+	createClient(manager, redis_client, socket, userId, repoStore)
 	log.Println("client connected : ", userId)
 }
 
-func createClient(manager *Manager, redis_client *redis.Client, socket *websocket.Conn, userId string) {
-	client := NewClient(socket, redis_client, userId, manager )
+func createClient(manager *Manager, redis_client *redis.Client, socket *websocket.Conn, userId string, repoStore *dbservice.RepoStore) {
+	client := NewClient(socket, redis_client, userId, manager, repoStore)
 	client.register()
 
 	go client.receiveMessage()

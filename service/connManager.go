@@ -2,7 +2,9 @@ package service
 
 import (
 	"context"
+	"dev/chatspace/dbservice"
 	"dev/chatspace/models"
+	"encoding/json"
 	"log"
 
 	"github.com/redis/go-redis/v9"
@@ -14,17 +16,27 @@ type Manager struct {
 	unregister chan *Client
 	msgSent    chan *models.Event
 	redis_client *redis.Client
+	close chan bool
+	repoStore *dbservice.RepoStore
 	// /lock 	 sync.RWMutex
 }
 
-func NewManager(redis_client *redis.Client) *Manager {
+func NewManager(redis_client *redis.Client, repoStore *dbservice.RepoStore) *Manager {
 	return &Manager{
 		clients:    make(map[string]*Client),
 		register:   make(chan *Client),
 		unregister: make(chan *Client),
 		msgSent:    make(chan *models.Event),
+		close: make(chan bool),
 		redis_client: redis_client,
+		repoStore: repoStore,
 	}
+}
+
+
+func (m *Manager) Close(){
+	m.close <- true
+	close(m.close)
 }
 
 func (m *Manager) Start() {
@@ -41,17 +53,23 @@ func (m *Manager) Start() {
 			log.Println("message received from client on manager : ", string(event.Data))
 			
 			log.Println("event data received from client on manager : ", string(event.Data))
-			client, present := m.clients[event.UserId]
+			client, present := m.clients[event.ReceiverId]
+			payload, err := json.Marshal(event)
+			if err != nil {
+				log.Println("error occurred while marshalling event data")
+				continue
+			}
+		
 			if present {
-				client.buff <- []byte(event.Data)
+				client.buff <- []byte(payload)
 
 				log.Println("message sent to client",event.Data)
 			} else {
 				
 				// /err := m.redis_client.Publish(context.Background(), event.UserId, event.Data).Err()
 				entry_id, err:= m.redis_client.XAdd(context.Background(), &redis.XAddArgs{
-					Stream: event.UserId,
-					Values: map[string]interface{}{"payload": event.Data},
+					Stream: event.ReceiverId,
+					Values: map[string]interface{}{"payload": payload},
 				}).Result()
 				// will be added to redis queue for users in another server
 
@@ -61,6 +79,9 @@ func (m *Manager) Start() {
 					log.Println("message added to redis queue with entry id : ", entry_id)
 				}
 			}
+		case <-m.close:
+			log.Println("closing manager")
+			return
 
 		}
 	}

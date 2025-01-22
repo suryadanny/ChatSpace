@@ -4,6 +4,7 @@ import (
 	"dev/chatspace/authentication"
 	"dev/chatspace/dbservice"
 	"dev/chatspace/models"
+	"dev/chatspace/utils"
 	"encoding/json"
 	"io"
 	"log"
@@ -71,8 +72,39 @@ func (u *UserService) DeleteUser(w http.ResponseWriter, r *http.Request) {
 	w.WriteHeader(http.StatusOK)
 }
 
+func (u *UserService) LastActive(w http.ResponseWriter, r *http.Request) {
+	//id  := chi.URLParam(r, "id")
+	user_id := chi.URLParam(r, "userId")
+
+	log.Println("user_id : ", user_id)
+
+	user , err := u.userRepo.GetUser(user_id)
+
+	
+
+	if err != nil {
+		log.Println("error occurred while fetching user")
+		w.Write([]byte("user not found"))
+		w.WriteHeader(http.StatusInternalServerError)
+	}
+
+	if !user.LastActive.IsZero() {
+		payload := make(map[string]interface{})
+		payload["last_active"] = user.LastActive
+		payload["user_id"] = user_id
+		serUser , _ := json.Marshal(payload)
+		w.Header().Set("Content-Type", "application/json")
+		w.Write([]byte(serUser))
+		w.WriteHeader(http.StatusOK)
+	}else{
+		w.WriteHeader(http.StatusNotFound)
+		w.Write([]byte("user not found"))
+
+	}
+}
+
 func (u *UserService) UpdateUser(w http.ResponseWriter, r *http.Request) {
-	user := make(map[string]string)
+	user := make(map[string]interface{})
 	user_id := chi.URLParam(r, "id")
 	request_body , err := io.ReadAll(r.Body)
 	if err != nil {
@@ -171,6 +203,7 @@ func (u *UserService) Login(w http.ResponseWriter, r *http.Request) {
 
 	claims := jwt.MapClaims{
 		"username": user.UserName,
+		"user_id": user.UserId,
 		"email": user.Email,
 		"iat": time.Now().Unix(),
 		"exp": time.Now().Add(time.Hour * 24).Unix(),
@@ -184,7 +217,7 @@ func (u *UserService) Login(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	w.Header().Set("Authorization", "Bearer " + token_string)
+	w.Header().Set("Authorization", utils.Bearer + token_string)
 	w.WriteHeader(http.StatusOK)
 	w.Write([]byte("login successful"))
 

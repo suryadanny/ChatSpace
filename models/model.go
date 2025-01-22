@@ -45,7 +45,7 @@ type User struct {
 	Email      string    `json:"email" db:"email"`
 	Contact    string    `json:"contact" db:"contact"`
 	Password   string    `json:"password" db:"password"`
-	LastActive time.Time `json:"last_seen" db:"last_active"`
+	LastActive time.Time `json:"last_active" db:"last_active"`
 }
 
 type Friends struct {
@@ -54,8 +54,9 @@ type Friends struct {
 }
 
 type Event struct {
-	UserId string `json:"user_id"`
+	SenderId string `json:"sender_id"`
 	Data   string `json:"data"`
+	ReceiverId string `json:"receiver_id"`
 }
 
 type MsgEvent struct {

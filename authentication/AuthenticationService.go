@@ -1,11 +1,13 @@
 package authentication
 
 import (
+	"dev/chatspace/utils"
 	"errors"
 	"fmt"
 	"log"
 	"net/http"
 
+	"github.com/go-chi/chi"
 	"github.com/golang-jwt/jwt/v5"
 )
 
@@ -25,26 +27,36 @@ func BuildJwtToken(claims jwt.MapClaims) (string, error) {
 
 func TokenMiddleware( next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		token := r.Header.Get("Authorization")
+		token := r.Header.Get(utils.Authorization)
 		if token == "" {
 			http.Error(w, "Token is missing", http.StatusBadRequest)
 			
 			return
 		}
+		
+		user_id := chi.URLParam(r, "id")
 
-		_, err := ParseToken(token[len("Bearer "):])
+		claims, err := ParseToken(token[len(utils.Bearer):])
+
 		if err != nil {
 			http.Error(w, "Invalid token", http.StatusUnauthorized)
 			
 			return
-		}
+		}else if claims["user_id"] != user_id {
+			//log.Println(claims["user_id"])
+			log.Println(claims)
+			http.Error(w, "Unauthorized user", http.StatusUnauthorized)
+			
+			return
 
+		}
+		log.Println(claims)
 		next.ServeHTTP(w, r)
 	})
 }
 
 
-func ParseToken(tokenString string) (*jwt.Token, error) {
+func ParseToken(tokenString string) (jwt.MapClaims, error) {
 	token, err := jwt.Parse(tokenString, func(token *jwt.Token) (interface{}, error) {
 
 		if _, ok := token.Method.(*jwt.SigningMethodHMAC); !ok {
@@ -55,15 +67,17 @@ func ParseToken(tokenString string) (*jwt.Token, error) {
 	})
 
 	if err != nil {
-		log.Fatal("Error while parsing token")
+		log.Println("Error while parsing token")
 		return nil, err
 	}
 
-	if claims, ok := token.Claims.(jwt.MapClaims); ok && token.Valid {
+	claims, ok := token.Claims.(jwt.MapClaims)
+
+	if ok && token.Valid {
 		log.Println(claims)
 	} else {
 		return nil, errors.New("invalid token")
 	}
 
-	return token, nil
+	return claims, nil
 }

@@ -5,11 +5,11 @@ import (
 	"dev/chatspace/dbservice"
 	"dev/chatspace/service"
 	"dev/chatspace/utils"
-	"fmt"
 	"log"
 	"net/http"
 	"os"
 	"strconv"
+	"time"
 
 	"github.com/go-chi/chi"
 	"github.com/go-chi/chi/middleware"
@@ -18,7 +18,6 @@ import (
 	"github.com/redis/go-redis/v9"
 	"github.com/scylladb/gocqlx/v2"
 )
-
 
 
 
@@ -39,11 +38,11 @@ func main(){
 		log.Fatal("error while reading properties")
 		return
 	}else{
-		fmt.Println("properties read successfully -- setting up db connections")
+	// /	fmt.Println("properties read successfully -- setting up db connections")
 		dbservice.SetupSqlDbconnection(AppProperties)
 
 	}
-	fmt.Println(AppProperties)
+	//fmt.Println(AppProperties)
 
 	cluster := gocql.NewCluster(AppProperties["cql.hostname"])
 	cluster.Keyspace = "store"
@@ -68,7 +67,18 @@ func main(){
 		return
 	}
 
+	repoStore := dbservice.NewRepoStore()
+
+
+	// instatiating user repository and setting it to the repoStore
 	userRepo := dbservice.NewUserRepository(&cqlx_session)
+	userDeviceRepo := dbservice.NewUserDeviceRepository(&cqlx_session)
+
+
+	repoStore.SetUserRepository(userRepo)
+	repoStore.SetUserDeviceRepository(userDeviceRepo)
+	repoStore.SetEventRepository(dbservice.NewEventRepository(&cqlx_session))
+	
 	//instantiating redis client to be used for 
 	//communication between clients on multiple servers
 	
@@ -81,10 +91,12 @@ func main(){
 		DB: 0,
 	})
 	// a service hub in the application for moving messages betwee clients
-	manager := service.NewManager(redis_client)
+	manager := service.NewManager(redis_client, repoStore)
     userService := service.NewUserService(userRepo) 
 
 	go manager.Start()
+
+	defer manager.Close()
 
 	router := chi.NewRouter()
 	router.Use(middleware.Logger)
@@ -94,23 +106,27 @@ func main(){
 		r.Post("/signup", utils.ValidateUserRequestMiddleWare(http.HandlerFunc(userService.CreateUser)))
 		r.Post("/login", utils.ValidateLoginRequestMiddleWare(http.HandlerFunc(userService.Login)))
 	})
-
+     log.Println("server started at :", time.Now())
 
 	//private routes with jwt auth tokens
 	router.Group(func(r chi.Router){
-		r.Use(authentication.TokenMiddleware)
-		r.Route("/user", func(r chi.Router) {
+		//jwt token authentication , this could be further explore to remove blacklisted tokens using bloom filter
+		//r.Use(authentication.TokenMiddleware)
+		r.Route("/user/{id}", func(r chi.Router) {
+			r.Use(authentication.TokenMiddleware)
 
-
-			r.Get("/", http.HandlerFunc(userService.GetUsers))
-			r.Get("/{id}", http.HandlerFunc(userService.GetUser)) 
-			r.Post("/", http.HandlerFunc(userService.CreateUser))
-			r.Get("/{id}/chat", http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-				service.SocketHandler(manager, redis_client, w, r)
+		    r.Get("/", http.HandlerFunc(userService.GetUser)) 
+			r.Get("/chat", http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+				service.SocketHandler(manager, redis_client, w, r ,repoStore)
 			}))
-			r.Get("/{id}/online/{userId}", nil)
-			r.Post("/{id}/delete", http.HandlerFunc(userService.DeleteUser))
-			r.Put("/{id}/update", http.HandlerFunc(userService.UpdateUser))
+
+			r.Get("/online/{userId}", http.HandlerFunc(userService.LastActive))
+			r.Post("/delete", http.HandlerFunc(userService.DeleteUser))
+			r.Put("/update", http.HandlerFunc(userService.UpdateUser))
+		})
+
+		r.Route("/system", func(r chi.Router) {
+			r.Get("/AllUsers", http.HandlerFunc(userService.GetUsers))
 		})
 	})
 

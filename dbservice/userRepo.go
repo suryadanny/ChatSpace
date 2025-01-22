@@ -13,6 +13,50 @@ import (
 	"github.com/scylladb/gocqlx/v2/qb"
 )
 
+
+type RepoStore struct {
+    userRepo *UserRepository
+	userDeviceRepository *UserDeviceRepository
+	eventRepository *EventRepository
+
+}
+
+func NewRepoStore() *RepoStore {
+	return &RepoStore{}
+}
+
+func (r *RepoStore) SetUserRepository(userRepo *UserRepository)  {
+	r.userRepo = userRepo
+	
+}
+
+func (r *RepoStore) SetUserDeviceRepository(userDeviceRepository *UserDeviceRepository)  {
+
+	r.userDeviceRepository = userDeviceRepository
+	
+}
+
+func (r *RepoStore) SetEventRepository(eventRepository *EventRepository)  {
+	r.eventRepository = eventRepository
+}
+
+func (r *RepoStore) GetUserRepo() *UserRepository {
+	return r.userRepo
+}
+
+func (r *RepoStore) GetUserDeviceRepo() *UserDeviceRepository {	
+	return r.userDeviceRepository
+
+}
+
+func (r *RepoStore) GetEventRepo() *EventRepository {
+
+	return r.eventRepository
+}
+
+
+
+
 type UserRepository struct {
 	session *gocqlx.Session
 	//lock *sync.RWMutex
@@ -56,7 +100,7 @@ func (u *UserRepository) DeleteUser(userId string) error {
 	return nil
 }
 
-func (u *UserRepository) UpdateUser(user map[string]string, user_id string) error {
+func (u *UserRepository) UpdateUser(user map[string]interface{}, user_id string) error {
 	models.UserTable.SelectQuery(*u.session)
 	// models.UserTable.UpdateQuery(*u.session).
 	qb_map := qb.M{}
@@ -65,7 +109,8 @@ func (u *UserRepository) UpdateUser(user map[string]string, user_id string) erro
 		update.Set(key)
 		qb_map[key] = value
 	}
-
+	// update.Set("last_active")
+	// qb_map["last_active"] = time.Now().Unix()
 	qb_map["user_id"] = user_id
 	
 	stmt, names := update.Where(qb.Eq("user_id")).ToCql()
@@ -104,7 +149,6 @@ func (u *UserRepository) GetUserByField(fieldName string, username string) (*mod
 	}
 	return user, nil 
 }
-
 
 
 
