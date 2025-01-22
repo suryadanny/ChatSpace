@@ -11,17 +11,32 @@ import (
 func ValidateUserRequestMiddleWare(chain http.HandlerFunc) http.HandlerFunc {
 	
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-	r.ParseForm()
 
+		request := make(map[string]string)
 
-	if r.PostFormValue("password") == "" || r.PostFormValue("email") == ""  || r.PostFormValue("user_name") == "" {
-		http.Error(w, "email or password is missing", http.StatusBadRequest)
-		w.WriteHeader(http.StatusBadRequest)
-		w.Write([]byte("email or password is missing"))
-		return 
-	}
+		request_body , err := io.ReadAll(r.Body)
 
-	chain.ServeHTTP(w, r)
+		if err != nil {
+			log.Println("error while reading request body")
+			w.WriteHeader(http.StatusBadRequest)
+		}
+		
+		un_err := json.Unmarshal(request_body, &request)
+	
+		if un_err != nil {
+			log.Println("error while unmarshalling request body")
+			w.WriteHeader(http.StatusBadRequest)
+		}
+	
+
+		if request["password"] == "" || request["email"] == ""  || request["user_name"] == "" {
+			http.Error(w, "email or password is missing", http.StatusBadRequest)
+			w.WriteHeader(http.StatusBadRequest)
+			w.Write([]byte("email or password is missing"))
+			return 
+		}
+
+		chain.ServeHTTP(w, r)
 
 
 	})

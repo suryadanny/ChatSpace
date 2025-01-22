@@ -108,7 +108,7 @@ func (u *UserRepository) GetUserByField(fieldName string, username string) (*mod
 
 
 
-// below Database methodds are to interact with a mysql database
+// below Database methods are to interact with a mysql database
 
 var connectioUpgrader = websocket.Upgrader{
    ReadBufferSize: 1024,

@@ -9,6 +9,7 @@ import (
 	"log"
 	"net/http"
 	"os"
+	"strconv"
 
 	"github.com/go-chi/chi"
 	"github.com/go-chi/chi/middleware"
@@ -44,9 +45,10 @@ func main(){
 	}
 	fmt.Println(AppProperties)
 
-	cluster := gocql.NewCluster(AppProperties["cqsql.hostname"])
+	cluster := gocql.NewCluster(AppProperties["cql.hostname"])
 	cluster.Keyspace = "store"
-	cluster.Port = 9042
+	cql_port, _ := strconv.Atoi(AppProperties["cql.port"])
+	cluster.Port = cql_port
 	cluster.Consistency = gocql.Quorum
 	session, err := cluster.CreateSession()
 	
@@ -69,8 +71,12 @@ func main(){
 	userRepo := dbservice.NewUserRepository(&cqlx_session)
 	//instantiating redis client to be used for 
 	//communication between clients on multiple servers
+	
+	redis_addr := AppProperties["redis.hostname"] + ":" + AppProperties["redis.port"]
+	
+
 	redis_client := redis.NewClient(&redis.Options{
-		Addr: "localhost:6379",
+		Addr: redis_addr,
 		Password: "",	
 		DB: 0,
 	})
@@ -79,12 +85,6 @@ func main(){
     userService := service.NewUserService(userRepo) 
 
 	go manager.Start()
-
-	
-	
-	
-	
-
 
 	router := chi.NewRouter()
 	router.Use(middleware.Logger)
@@ -108,16 +108,11 @@ func main(){
 			r.Get("/{id}/chat", http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 				service.SocketHandler(manager, redis_client, w, r)
 			}))
+			r.Get("/{id}/online/{userId}", nil)
 			r.Post("/{id}/delete", http.HandlerFunc(userService.DeleteUser))
 			r.Put("/{id}/update", http.HandlerFunc(userService.UpdateUser))
 		})
 	})
-	
-
-	// router.Get("/chat", http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-	// 	service.SocketHandler(manager, redis_client, w, r)
-	// }))
-
 
 	http.ListenAndServe(":"+port,router)
 }
