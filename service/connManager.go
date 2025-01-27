@@ -50,9 +50,9 @@ func (m *Manager) Start() {
 			log.Printf("client %s unregistered", client.userId)		
 			delete(m.clients, client.userId)
 		case event := <-m.msgSent:
-			log.Println("message received from client on manager : ", string(event.Data))
+			log.Println("message received from client on manager : ", string(event.Message))
 			
-			log.Println("event data received from client on manager : ", string(event.Data))
+			log.Println("event data received from client on manager : ", string(event.Message))
 			client, present := m.clients[event.ReceiverId]
 			payload, err := json.Marshal(event)
 			if err != nil {
@@ -63,7 +63,7 @@ func (m *Manager) Start() {
 			if present {
 				client.buff <- []byte(payload)
 
-				log.Println("message sent to client",event.Data)
+				log.Println("message sent to client",event.Message)
 			} else {
 				
 				// /err := m.redis_client.Publish(context.Background(), event.UserId, event.Data).Err()

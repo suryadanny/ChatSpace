@@ -67,7 +67,7 @@ func ParseToken(tokenString string) (jwt.MapClaims, error) {
 	})
 
 	if err != nil {
-		log.Println("Error while parsing token")
+		log.Println("Error while parsing token: ",err)
 		return nil, err
 	}
 

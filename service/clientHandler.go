@@ -11,6 +11,7 @@ import (
 	"time"
 
 	"github.com/go-chi/chi"
+	"github.com/gocql/gocql"
 	"github.com/gorilla/websocket"
 	"github.com/redis/go-redis/v9"
 )
@@ -51,7 +52,7 @@ func (c *Client) register() {
 }
 
 func (c *Client) updateUserLastActiveTime(){
-	c.repoStore.GetUserRepo().UpdateUser( map[string]interface{}{"last_active" : time.Now().Unix()} , c.userId)
+	c.repoStore.GetUserRepo().UpdateUser( map[string]interface{}{"last_active" : time.Now().UnixMilli()} , c.userId)
 }
 
 func (c *Client) receiveMessage(){
@@ -85,11 +86,18 @@ func (c *Client) receiveMessage(){
 			log.Println("cleaned message : ", cleanedMsg)
 			err := json.Unmarshal([]byte(cleanedMsg), event)
 			event.SenderId = c.userId
+			event.IsDelivered = false
+			event.Received = time.Now()
+			
+			event.EventId = gocql.TimeUUID()
+
+			
 			if err != nil {
 				log.Println("error occurred while unmarshalling event data : ", err)
 				
 			}else{
 				c.manager.msgSent <- event
+				c.repoStore.GetEventRepo().AddEvent(event)
 			}
 		}	
 	}
@@ -113,6 +121,15 @@ func (c *Client) sendMessage() {
 				err := c.conn.WriteMessage(websocket.TextMessage, msg)
 				if err != nil {
 					log.Println("error while sending message")
+
+				}else{
+					event := &models.Event{}
+					err := json.Unmarshal([]byte(msg), event)
+
+					if err != nil {
+						log.Println("error occurred while unmarshalling event data for updating event : ", err)
+					}
+					c.repoStore.GetEventRepo().UpdateEvent(map[string]interface{}{"is_delivered" : true, "delivered":time.Now().UnixMilli()}, event.EventId , event.SenderId, event.Received)
 				}
 				
 			case rdb_msg := <-client_sub.Channel():

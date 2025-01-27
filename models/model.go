@@ -54,9 +54,13 @@ type Friends struct {
 }
 
 type Event struct {
+	EventId gocql.UUID `json:"event_id"`
 	SenderId string `json:"sender_id"`
-	Data   string `json:"data"`
+	Message   string `json:"msg"`
 	ReceiverId string `json:"receiver_id"`
+	IsDelivered bool `json:"is_delivered" db:"is_delivered"`
+	Delivered time.Time `json:"delivered" db:"delivered"`
+	Received  time.Time `json:"received" db:"received"`
 }
 
 type MsgEvent struct {
