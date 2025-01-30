@@ -1,4 +1,4 @@
-# A Real Time Chat System POC implementation based on the System Design by ALEX WU
+# A Real Time Chat System implementation based on the chapter from the Book System Design by ALEX WU
 
 ## Overview
 A real time chat system built using Golang, featuring the [Gochi](https://github.com/go-chi/chi) router for handling HTTP requests, [Gorilla WebSocket](https://github.com/gorilla/websocket) for real-time communication, [Cassandra](https://cassandra.apache.org/) as the primary database, and [Redis](https://redis.io/) for caching and session management.
