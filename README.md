@@ -16,7 +16,7 @@ This project is a web application built using Golang, featuring the [Gochi](http
 - **Database**: Cassandra
 - **Pub Sub**: Redis Stream
 
-## Reference - pretty helpful- 
+## References - pretty helpful 
 - https://timothy-urista.medium.com/an-easy-guide-to-implementing-pagination-in-cassandra-using-go-e7d13cfc804a
 - https://bitek.dev/blog/go_cassandra_gocql/
 - https://codesahara.com/blog/golang-job-queue-with-redis-streams/ - better understanding of redis streams
