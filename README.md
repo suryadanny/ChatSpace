@@ -67,7 +67,8 @@ This project is a web application built using Golang, featuring the [Gochi](http
 
 ## Usage
 - Start the application and access it via `http://localhost:8080`
-- WebSocket endpoint: `ws://localhost:8080/ws`
+- WebSocket endpoint: `ws://localhost:8080/{user-id}/chat` - need to create a user and login with user to get jwt bearer token, which needs to be passed with endpoint
+
 
 ## Contributing
 1. Fork the repository
