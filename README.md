@@ -70,16 +70,4 @@ This project is a web application built using Golang, featuring the [Gochi](http
 - WebSocket endpoint: `ws://localhost:8080/{user-id}/chat` - need to create a user and login with user to get jwt bearer token, which needs to be passed with endpoint
 
 
-## Contributing
-1. Fork the repository
-2. Create a new branch (`git checkout -b feature-branch`)
-3. Commit your changes (`git commit -m 'Add new feature'`)
-4. Push to the branch (`git push origin feature-branch`)
-5. Create a Pull Request
-
-## License
-This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
-
-## Contact
-For issues or feature requests, open an issue on GitHub or contact the maintainer.
 
