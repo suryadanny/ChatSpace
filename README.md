@@ -81,11 +81,11 @@ This project is a web application built using Golang, featuring the [Gochi](http
 
 ## API Specification
 
-### Signup Endpoint
-#### URL:
+#### Signup Endpoint
+##### URL:
 `POST http://localhost:8000/signup`
 
-#### Request Body:
+##### Request Body:
 ```json
 {
   "user_name": "******",
@@ -96,11 +96,11 @@ This project is a web application built using Golang, featuring the [Gochi](http
 }
 ```
 
-### Login Endpoint
-#### URL:
+#### Login Endpoint
+##### URL:
 `POST http://localhost:8000/login`
 
-#### Request Body:
+##### Request Body:
 ```json
 {
   "user_name": "******",
@@ -108,29 +108,29 @@ This project is a web application built using Golang, featuring the [Gochi](http
 }
 ```
 
-### Update User Endpoint
-#### URL:
+#### Update User Endpoint
+##### URL:
 `PUT http://localhost:8000/user/{user_id}/update`
 
-#### Request Body (example for updating password):
+##### Request Body (example for updating password):
 ```json
 {
   "password" : "******"
 }
 ```
 
-### WebSocket Chat Endpoint
-#### URL:
+#### WebSocket Chat Endpoint
+##### URL:
 `ws://localhost:8000/user/{user_id}/chat`
 
-#### Headers:
+##### Headers:
 - **Authorization**: Bearer token
 
-### Get Friend's Last Online Status
-#### URL:
+#### Get Friend's Last Online Status
+##### URL:
 `GET http://localhost:8000/user/{user_id}/online/{friend_id}`
 
-#### Response:
+##### Response:
 ```json
 {
   "friend_id": "******",
