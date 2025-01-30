@@ -75,9 +75,69 @@ This project is a web application built using Golang, featuring the [Gochi](http
 └── README.md
 ```
 
-## Usage
+## Usage & Endpoints
 - Start the application and access it via `http://localhost:8080`
 - WebSocket endpoint: `ws://localhost:8080/{user-id}/chat` - need to create a user and login with user to get jwt bearer token, which needs to be passed with endpoint
+
+## API Specification
+
+### Signup Endpoint
+#### URL:
+`POST http://localhost:8000/signup`
+
+#### Request Body:
+```json
+{
+  "user_name": "******",
+  "name": "******",
+  "email": "******@******.com",
+  "contact": "**********",
+  "password" : "******"
+}
+```
+
+### Login Endpoint
+#### URL:
+`POST http://localhost:8000/login`
+
+#### Request Body:
+```json
+{
+  "user_name": "******",
+  "password": "******"
+}
+```
+
+### Update User Endpoint
+#### URL:
+`PUT http://localhost:8000/user/{user_id}/update`
+
+#### Request Body (example for updating password):
+```json
+{
+  "password" : "******"
+}
+```
+
+### WebSocket Chat Endpoint
+#### URL:
+`ws://localhost:8000/user/{user_id}/chat`
+
+#### Headers:
+- **Authorization**: Bearer token
+
+### Get Friend's Last Online Status
+#### URL:
+`GET http://localhost:8000/user/{user_id}/online/{friend_id}`
+
+#### Response:
+```json
+{
+  "friend_id": "******",
+  "last_online": "YYYY-MM-DDTHH:MM:SSZ"
+}
+```
+
 
 
 
