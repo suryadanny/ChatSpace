@@ -36,7 +36,7 @@ A real time chat system built using Golang, featuring the [Gochi](https://github
 ### Steps
 1. Clone the repository:
    ```sh
-   git clone https://github.com/yourusername/yourproject.git
+   git clone https://github.com/suryadanny/ChatSpace
    cd yourproject
    ```
 2. Install dependencies:
