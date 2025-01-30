@@ -7,7 +7,7 @@ A real time chat system built using Golang, featuring the [Gochi](https://github
 - **Gochi Router**: Lightweight and fast HTTP routing.
 - **Gorilla WebSocket**: Real-time, bidirectional communication.
 - **Cassandra DB**: Scalable and distributed NoSQL database.
-- **Redis**: For streaming of events/message between clients on differen servers.
+- **Redis**: For streaming of events/message between clients on different servers.
 
 ## Tech Stack
 - **Language**: Golang
