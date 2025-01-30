@@ -27,6 +27,7 @@ func NewUserService(userRepo *dbservice.UserRepository) *UserService{
 	return &UserService{userRepo:userRepo}
 }
 
+//get all users
 func (u *UserService) GetUsers(w http.ResponseWriter, r *http.Request) {
 	users, err := u.userRepo.GetAllUsers()
 
@@ -40,7 +41,7 @@ func (u *UserService) GetUsers(w http.ResponseWriter, r *http.Request) {
 	w.Write([]byte(serUser))
 }
 
-
+// Get user by id
 func (u *UserService) GetUser(w http.ResponseWriter, r *http.Request) {
 	id  := chi.URLParam(r, "id")
 
@@ -58,7 +59,7 @@ func (u *UserService) GetUser(w http.ResponseWriter, r *http.Request) {
 
 
 
-
+//delete user by id
 func (u *UserService) DeleteUser(w http.ResponseWriter, r *http.Request) {
 	id  := chi.URLParam(r, "id")
 
@@ -72,6 +73,7 @@ func (u *UserService) DeleteUser(w http.ResponseWriter, r *http.Request) {
 	w.WriteHeader(http.StatusOK)
 }
 
+//get last active time of user
 func (u *UserService) LastActive(w http.ResponseWriter, r *http.Request) {
 	//id  := chi.URLParam(r, "id")
 	user_id := chi.URLParam(r, "userId")
@@ -103,6 +105,8 @@ func (u *UserService) LastActive(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
+
+//update user by id
 func (u *UserService) UpdateUser(w http.ResponseWriter, r *http.Request) {
 	user := make(map[string]interface{})
 	user_id := chi.URLParam(r, "id")
@@ -132,6 +136,8 @@ func (u *UserService) UpdateUser(w http.ResponseWriter, r *http.Request) {
 	w.WriteHeader(http.StatusOK)
 }
 
+
+//create user
 func (u *UserService)CreateUser(w http.ResponseWriter, r *http.Request) {
 
 	user := &models.User{}
@@ -165,6 +171,7 @@ func (u *UserService)CreateUser(w http.ResponseWriter, r *http.Request) {
 
 }
 
+//login user request
 func (u *UserService) Login(w http.ResponseWriter, r *http.Request) {
 
 	
@@ -201,6 +208,8 @@ func (u *UserService) Login(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	// if user is found and password is correct, generate jwt token
+	//set claims
 	claims := jwt.MapClaims{
 		"username": user.UserName,
 		"user_id": user.UserId,
@@ -208,7 +217,7 @@ func (u *UserService) Login(w http.ResponseWriter, r *http.Request) {
 		"iat": time.Now().Unix(),
 		"exp": time.Now().Add(time.Hour * 24).Unix(),
 	}
-
+	//generate token
 	token_string, err := authentication.BuildJwtToken(claims)
 
 	if err != nil {
@@ -216,7 +225,7 @@ func (u *UserService) Login(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(http.StatusInternalServerError)
 		return
 	}
-
+	//set token in the header
 	w.Header().Set("Authorization", utils.Bearer + token_string)
 	w.WriteHeader(http.StatusOK)
 	w.Write([]byte("login successful"))

@@ -42,7 +42,9 @@ func main(){
 		dbservice.SetupSqlDbconnection(AppProperties)
 
 	}
-	//fmt.Println(AppProperties)
+
+
+	//setting up the cassandra connection
 
 	cluster := gocql.NewCluster(AppProperties["cql.hostname"])
 	cluster.Keyspace = "store"
@@ -58,7 +60,7 @@ func main(){
 	// close the session when exiting the serivice
 	defer session.Close()
 
-	//creating user respository
+	//creating cqlx session
 	cqlx_session, err := gocqlx.WrapSession(session ,err)
 	
 	
@@ -67,6 +69,8 @@ func main(){
 		return
 	}
 
+
+	//Container for all the repositories
 	repoStore := dbservice.NewRepoStore()
 
 
@@ -74,7 +78,7 @@ func main(){
 	userRepo := dbservice.NewUserRepository(&cqlx_session)
 	userDeviceRepo := dbservice.NewUserDeviceRepository(&cqlx_session)
 
-
+	//setting the repositories to the repoStore
 	repoStore.SetUserRepository(userRepo)
 	repoStore.SetUserDeviceRepository(userDeviceRepo)
 	repoStore.SetEventRepository(dbservice.NewEventRepository(&cqlx_session))
@@ -90,10 +94,15 @@ func main(){
 		Password: "",	
 		DB: 0,
 	})
+
+
 	// a service hub in the application for moving messages betwee clients
 	manager := service.NewManager(redis_client, repoStore)
-    userService := service.NewUserService(userRepo) 
+    
+	//instantiating user service
+	userService := service.NewUserService(userRepo) 
 
+	//starting the manager
 	go manager.Start()
 
 	defer manager.Close()
@@ -110,9 +119,10 @@ func main(){
 
 	//private routes with jwt auth tokens
 	router.Group(func(r chi.Router){
-		//jwt token authentication , this could be further explore to remove blacklisted tokens using bloom filter
-		//r.Use(authentication.TokenMiddleware)
+		
 		r.Route("/user/{id}", func(r chi.Router) {
+		//jwt token authentication , this could be further explore to remove blacklisted tokens using bloom filter
+		
 			r.Use(authentication.TokenMiddleware)
 
 		    r.Get("/", http.HandlerFunc(userService.GetUser)) 

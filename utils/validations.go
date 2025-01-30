@@ -8,6 +8,7 @@ import (
 	"net/http"
 )
 
+// ValidateLoginRequestMiddleWare is a middleware function that validates the signin request
 func ValidateUserRequestMiddleWare(chain http.HandlerFunc) http.HandlerFunc {
 	
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
@@ -46,6 +47,7 @@ func ValidateUserRequestMiddleWare(chain http.HandlerFunc) http.HandlerFunc {
 	
 }
 
+//checks if the request has the required fields for login
 func ValidateLoginRequestMiddleWare(chain http.HandlerFunc) http.HandlerFunc {
 	
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {

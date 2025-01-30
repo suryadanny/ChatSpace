@@ -11,6 +11,7 @@ import (
 	"github.com/scylladb/gocqlx/v2/qb"
 )
 
+// EventMetadata is the metadata for the event table
 var EventMetadata = table.Metadata{
 	Name: "chat_store",
 	Columns: []string{"receiver_id", "sender_id", "delivered", "received", "message", "event_id", "is_delivered"},
@@ -18,11 +19,16 @@ var EventMetadata = table.Metadata{
 	SortKey: []string{"rceived"},
 }
 
+// EventTable stuct used for binding the event table
 var EventTable = table.New(EventMetadata)
 
+
+//using scylladb/gocqlx/v2 for cassandra operations, thats helps us get rid of the boilerplate code
 type EventRepository struct {
 	session *gocqlx.Session
 }
+
+
 
 
 func NewEventRepository(session *gocqlx.Session) *EventRepository {
@@ -31,7 +37,7 @@ func NewEventRepository(session *gocqlx.Session) *EventRepository {
 	}
 }
 
-
+// AddEvent adds an event to the cassandra store
 func (e *EventRepository) AddEvent(event *models.Event) error {
 	insertQuery := e.session.Query(EventTable.Insert())
 
@@ -44,7 +50,7 @@ func (e *EventRepository) AddEvent(event *models.Event) error {
 
 }
 
-
+//updating the event in the cassandra store
 func (e *EventRepository) UpdateEvent(event map[string]interface{}, event_id gocql.UUID, sender_id string, received time.Time) error {
 	updateQuery := qb.Update("store.chat_store")
 	qb_map := qb.M{}

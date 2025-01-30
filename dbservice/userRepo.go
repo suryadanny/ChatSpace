@@ -67,6 +67,8 @@ func NewUserRepository(session *gocqlx.Session) *UserRepository {
 	return &UserRepository{session}
 }
 
+
+// creating a new user in the cassandra store
 func (u *UserRepository) CreateUser(user *models.User) error {
 	
 	err := u.session.Query(models.UserTable.Insert()).BindStruct(user).ExecRelease()
@@ -90,7 +92,7 @@ func (u *UserRepository) GetAllUsers() ([]*models.User, error) {
 	return usersList, nil
 }
 
-
+// deleting user from the cassandra store
 func (u *UserRepository) DeleteUser(userId string) error {
 	err := u.session.Query(models.UserTable.Delete()).BindMap(qb.M{"user_id": userId}).ExecRelease()
 	if err != nil {
@@ -100,6 +102,8 @@ func (u *UserRepository) DeleteUser(userId string) error {
 	return nil
 }
 
+
+// updating user in the cassandra store
 func (u *UserRepository) UpdateUser(user map[string]interface{}, user_id string) error {
 	models.UserTable.SelectQuery(*u.session)
 	// models.UserTable.UpdateQuery(*u.session).
@@ -109,8 +113,7 @@ func (u *UserRepository) UpdateUser(user map[string]interface{}, user_id string)
 		update.Set(key)
 		qb_map[key] = value
 	}
-	// update.Set("last_active")
-	// qb_map["last_active"] = time.Now().Unix()
+
 	qb_map["user_id"] = user_id
 	
 	stmt, names := update.Where(qb.Eq("user_id")).ToCql()
@@ -123,6 +126,7 @@ func (u *UserRepository) UpdateUser(user map[string]interface{}, user_id string)
 	return nil
 }
 
+// getting user by user_id
 func (u *UserRepository) GetUser(userId string) (*models.User, error) {
 	user := &models.User{}
 	err := u.session.Query(models.UserTable.Select()).BindMap(qb.M{"user_id": userId}).GetRelease(user)
@@ -133,7 +137,7 @@ func (u *UserRepository) GetUser(userId string) (*models.User, error) {
 	return user, nil 
 }
 
-
+// getting user by a specific field, but for this to work on cassandra , we should also have an index on the field in the table
 func (u *UserRepository) GetUserByField(fieldName string, username string) (*models.User, error) {
 	user := &models.User{}
 
@@ -152,7 +156,7 @@ func (u *UserRepository) GetUserByField(fieldName string, username string) (*mod
 
 
 
-// below Database methods are to interact with a mysql database
+// below Database methods are to interact with a mysql database and is irrelevant to the current project
 
 var connectioUpgrader = websocket.Upgrader{
    ReadBufferSize: 1024,

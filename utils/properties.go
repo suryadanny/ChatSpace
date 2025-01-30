@@ -9,6 +9,7 @@ import (
 
 var AppProperties map[string]string
 
+//scanning and setting up properties from app.properties file
 func GetAppPropeties() (map[string]string, error) {
 	AppProperties := make(map[string]string)
 	
