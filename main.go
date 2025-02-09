@@ -45,7 +45,6 @@ func main(){
 
 
 	//setting up the cassandra connection
-
 	cluster := gocql.NewCluster(AppProperties["cql.hostname"])
 	cluster.Keyspace = "store"
 	cql_port, _ := strconv.Atoi(AppProperties["cql.port"])

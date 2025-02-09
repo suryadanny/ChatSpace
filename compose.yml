@@ -1,0 +1,33 @@
+services:
+  app:
+    build: . # Replace with your actual Go app image name
+    container_name: chatspace_app
+    environment:
+      - CASSANDRA_HOST=nostalgic_swartz
+      - REDIS_HOST=redis-stack-server
+    ports:
+      - "8000:8000" # Adjust the port as needed
+    networks:
+      - app_network
+
+  # cassandra:
+  #   image: cassandra:latest
+  #   container_name: nos
+  #   environment:
+  #     - CASSANDRA_CLUSTER_NAME=store
+  #   ports:
+  #     - "9042:9042"
+  #   networks:
+  #     - app_network
+
+  # redis:
+  #   image: redis:latest
+  #   container_name: redis_box
+  #   ports:
+  #     - "6379:6379"
+  #   networks:
+  #     - app_network
+
+networks:
+  app_network:
+    external: true
